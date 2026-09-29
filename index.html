@@ -1,0 +1,775 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Caption or Ask</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Layout: one workbench column. Tabs on top; Lab = image on the left, controls on the right, pipeline underneath. */
+  :root{
+    --ground:#EDF1F6; --panel:#FFFFFF; --ink:#12233A; --ink2:#485A70; --line:#D2DBE6;
+    --cap:#0B7F8C; --capSoft:#DDF1F3; --capInk:#075E68;
+    --vqa:#C4530F; --vqaSoft:#FBE8DA; --vqaInk:#93400E;
+    --onacc:#FFFFFF;
+    --ok:#237A4B; --okSoft:#DDF2E5; --bad:#B5322A; --badSoft:#F9E0DD;
+    --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+    --f-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+    --f-mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0C1420; --panel:#142033; --ink:#E7EEF6; --ink2:#9DB0C5; --line:#263B52;
+      --cap:#43C4D2; --capSoft:#0F343A; --capInk:#7FDCE6;
+      --vqa:#F28E51; --vqaSoft:#3A2515; --vqaInk:#F7B48A;
+      --onacc:#0C1420;
+      --ok:#57C88A; --okSoft:#12301F; --bad:#F08078; --badSoft:#3B1B18;
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0C1420; --panel:#142033; --ink:#E7EEF6; --ink2:#9DB0C5; --line:#263B52;
+    --cap:#43C4D2; --capSoft:#0F343A; --capInk:#7FDCE6;
+    --vqa:#F28E51; --vqaSoft:#3A2515; --vqaInk:#F7B48A;
+    --onacc:#0C1420;
+    --ok:#57C88A; --okSoft:#12301F; --bad:#F08078; --badSoft:#3B1B18;
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);font:400 1rem/1.55 var(--f-body)}
+  button,input,select{font:inherit;color:inherit}
+  :focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+  .wrap{max-width:1040px;margin-inline:auto;padding-inline:16px;padding-block:28px 56px}
+  .eyebrow{font:500 .75rem var(--f-mono);letter-spacing:.09em;text-transform:uppercase;color:var(--ink2)}
+  h1{font:800 clamp(2.3rem,6.4vw,3.8rem)/1 var(--f-display);letter-spacing:-.02em;margin:8px 0 12px;text-wrap:balance}
+  h1 .c{color:var(--cap)} h1 .q{color:var(--vqa)}
+  h1 .o{color:var(--ink2);font-weight:600;font-size:.55em;padding-inline:.35em;letter-spacing:0}
+  h2{font:700 1.2rem/1.25 var(--f-display);margin:0 0 6px;text-wrap:balance}
+  .lead{max-width:62ch;color:var(--ink2);margin:0}
+  .note{font-size:.85rem;color:var(--ink2);max-width:70ch;margin:8px 0 0}
+  .lbl{display:block;font:500 .72rem var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);margin:14px 0 6px}
+
+  /* tabs */
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-block:26px 16px;overflow-x:auto}
+  .tab{appearance:none;background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;font:600 .95rem var(--f-body);color:var(--ink2);cursor:pointer;white-space:nowrap}
+  .tab:hover{color:var(--ink)}
+  .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+
+  /* scene bar */
+  .scenebar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:16px}
+  .scenebar .lbl{margin:0 4px 0 0}
+  .seg{appearance:none;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 14px;font-size:.9rem;cursor:pointer}
+  .seg:hover{border-color:var(--ink2)}
+  .seg[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+
+  /* lab */
+  .lab{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:28px;align-items:start}
+  .scene-wrap{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+  .scene-wrap svg{display:block;width:100%;max-width:100%;height:auto}
+  .hl{fill-opacity:.16;stroke-width:3;transition:opacity .2s;pointer-events:none}
+  .hl.cap{fill:var(--cap);stroke:var(--cap)}
+  .hl.vqa{fill:var(--vqa);stroke:var(--vqa)}
+  .readout{display:flex;gap:10px;align-items:baseline;margin-top:8px;font:500 .8rem var(--f-mono);color:var(--ink2)}
+  .readout .k{text-transform:uppercase;letter-spacing:.08em;font-size:.72rem}
+
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .mode{appearance:none;border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;text-align:left;background:var(--panel);cursor:pointer;min-width:0}
+  .mode b{display:block;font:700 1.05rem var(--f-display)}
+  .mode small{display:block;color:var(--ink2);font-size:.78rem;line-height:1.3}
+  .mode[data-mode="cap"][aria-pressed="true"]{border-color:var(--cap);background:var(--capSoft)}
+  .mode[data-mode="vqa"][aria-pressed="true"]{border-color:var(--vqa);background:var(--vqaSoft)}
+
+  .btn{appearance:none;border:0;border-radius:8px;padding:10px 16px;font:600 .95rem var(--f-body);cursor:pointer;color:var(--onacc)}
+  .btn.cap{background:var(--cap)} .btn.vqa{background:var(--vqa)}
+  .btn:hover{filter:brightness(1.08)}
+  .pane{margin-top:16px}
+
+  .cap-out{min-height:3.4em;margin-top:14px;font:600 1.3rem/1.4 var(--f-display)}
+  .w{border-bottom:2px solid transparent;border-radius:2px;padding-inline:1px}
+  .w[data-r]{border-bottom-color:var(--cap)}
+  .w[data-r].live:hover,.w[data-r].live:focus{background:var(--capSoft);outline:none}
+  .hint{font-size:.8rem;color:var(--ink2);margin-top:6px}
+  .alt{margin-top:14px}
+  .alt ul{margin:4px 0 0;padding-left:1.1em;color:var(--ink2);font-size:.92rem}
+
+  .ask{display:flex;flex-wrap:wrap;gap:8px}
+  .txt{flex:1 1 200px;min-width:0;border:1.5px solid var(--line);background:var(--panel);border-radius:8px;padding:9px 12px}
+  .txt:focus-visible{outline-offset:0;border-color:var(--vqa)}
+  .chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .qchip{appearance:none;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 11px;font-size:.85rem;cursor:pointer;text-align:left}
+  .qchip:hover{border-color:var(--vqa)}
+  .now{margin-top:16px;display:grid;gap:4px;min-height:5.2em}
+  .now .ql{color:var(--ink2)}
+  .now .al{font:800 1.7rem/1.15 var(--f-display);color:var(--vqaInk)}
+  .now .nt{font-size:.85rem;color:var(--ink2)}
+  .hist{list-style:none;padding:0;margin:14px 0 0;font-size:.88rem}
+  .hist li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;border-top:1px solid var(--line);padding:6px 0}
+  .hist .a{font-weight:600;color:var(--vqaInk)}
+
+  /* pipeline */
+  .inside{margin-top:34px}
+  .pipe{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;margin-top:12px}
+  .pipe[data-mode="cap"]{--acc:var(--cap);--accSoft:var(--capSoft)}
+  .pipe[data-mode="vqa"]{--acc:var(--vqa);--accSoft:var(--vqaSoft)}
+  .cell{position:relative;min-width:0}
+  .cell:not(:last-child)::after{content:"\2192";position:absolute;right:-19px;top:50%;transform:translateY(-50%);color:var(--ink2);font-weight:700}
+  .stack{display:grid;gap:8px}
+  .node{border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--panel);transition:background .2s,border-color .2s;min-width:0}
+  .node b{display:block;font:700 .95rem var(--f-display)}
+  .node small{display:block;color:var(--ink2);font-size:.78rem;line-height:1.35}
+  .node.on{border-color:var(--acc);background:var(--accSoft)}
+  .node.done{border-color:var(--acc)}
+  .node.done b,.node.on b{color:var(--acc)}
+  .disclaimer{margin-top:28px;padding-top:14px;border-top:1px solid var(--line)}
+
+  /* score */
+  .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:start}
+  .mini{max-width:260px;margin-bottom:12px}
+  .refs{margin:8px 0 0;padding-left:1.3em;font:400 .88rem/1.55 var(--f-mono);color:var(--ink2)}
+  .cand{display:flex;flex-wrap:wrap;gap:4px;margin-top:12px;min-height:1.9em}
+  .tok{padding:2px 7px;border-radius:4px;font:500 .88rem var(--f-mono)}
+  .tok.hit{background:var(--okSoft);color:var(--ok)}
+  .tok.miss{background:var(--badSoft);color:var(--bad)}
+  .bars{display:grid;gap:8px;margin-top:14px}
+  .bar{display:grid;grid-template-columns:6.2rem minmax(0,1fr) 3rem;gap:10px;align-items:center;font:500 .82rem var(--f-mono)}
+  .bar .v{text-align:right}
+  .track{height:10px;background:var(--line);border-radius:5px;overflow:hidden}
+  .fill{height:100%;width:0;background:var(--cap);transition:width .25s}
+  .fill.vqa{background:var(--vqa)}
+  .fill.dim{background:var(--ink2)}
+  .fill.pick{outline:2px solid var(--ink);outline-offset:1px}
+  select.txt{flex:none;width:100%}
+  .big{font:800 2rem/1 var(--f-display);margin-top:14px}
+  .big.cap{color:var(--capInk)} .big.vqa{color:var(--vqaInk)}
+  .tag{font:500 .7rem var(--f-mono);letter-spacing:.08em;padding:2px 8px;border-radius:999px;vertical-align:middle;margin-left:6px}
+  .tag.cap{background:var(--capSoft);color:var(--capInk)} .tag.vqa{background:var(--vqaSoft);color:var(--vqaInk)}
+
+  /* quiz */
+  .qz{max-width:680px}
+  .prog{font:500 .78rem var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+  .scn{font:600 1.4rem/1.3 var(--f-display);margin:10px 0 18px;text-wrap:balance}
+  .pick2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .pick2 .btn{padding:14px 16px;font-size:1rem}
+  .btn:disabled{opacity:.45;cursor:default;filter:none}
+  .fb{margin-top:16px;padding:12px 14px;border-radius:8px;font-size:.95rem}
+  .fb.ok{background:var(--okSoft);color:var(--ok)}
+  .fb.bad{background:var(--badSoft);color:var(--bad)}
+  .fb b{display:block;margin-bottom:2px}
+  .fb span{color:var(--ink)}
+  .btn.plain{background:var(--ink);color:var(--ground);margin-top:14px}
+  .final{font:800 2.6rem/1 var(--f-display);margin:10px 0}
+
+  @media (max-width:820px){
+    .lab,.two{grid-template-columns:minmax(0,1fr);gap:24px}
+  }
+  @media (max-width:640px){
+    .pipe{grid-template-columns:minmax(0,1fr);gap:22px}
+    .cell:not(:last-child)::after{content:"\2193";right:auto;left:50%;top:auto;bottom:-20px;transform:translateX(-50%)}
+    .pick2{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important}
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Multimedia systems &middot; vision-language</div>
+    <h1><span class="c">Caption</span><span class="o">or</span><span class="q">Ask</span></h1>
+    <p class="lead">Two ways to connect a picture with language. Pick an image, then let the model describe it or answer your questions about it.</p>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab" role="tab" id="t-lab" data-tab="lab" aria-selected="true">Lab</button>
+    <button class="tab" role="tab" id="t-score" data-tab="score" aria-selected="false">Score it</button>
+    <button class="tab" role="tab" id="t-quiz" data-tab="quiz" aria-selected="false">Which task?</button>
+  </div>
+
+  <div class="scenebar" id="sceneBar">
+    <span class="lbl">Image</span>
+  </div>
+
+  <!-- LAB -->
+  <section id="tab-lab" aria-labelledby="t-lab">
+    <div class="lab">
+      <div>
+        <div class="scene-wrap"><svg id="sceneSvg" viewBox="0 0 400 250" role="img" aria-label=""></svg></div>
+        <div class="readout"><span class="k">Focus</span><span id="focusText">nothing yet</span></div>
+      </div>
+
+      <div>
+        <div class="modes" role="group" aria-label="Task">
+          <button class="mode" data-mode="cap" aria-pressed="true"><b>Captioning</b><small>image in, sentence out</small></button>
+          <button class="mode" data-mode="vqa" aria-pressed="false"><b>VQA</b><small>image + question in, answer out</small></button>
+        </div>
+
+        <div class="pane" id="capPane">
+          <button class="btn cap" id="genBtn" type="button">Generate caption</button>
+          <div class="cap-out" id="capOut" aria-live="polite"></div>
+          <div class="hint" id="capHint" hidden>Hover or focus an underlined word to see the region it came from.</div>
+          <div class="alt" id="capAlt" hidden>
+            <span class="lbl" style="margin:0">Other valid descriptions of the same image</span>
+            <ul id="capAltList"></ul>
+          </div>
+        </div>
+
+        <div class="pane" id="vqaPane" hidden>
+          <form class="ask" id="askForm" autocomplete="off">
+            <label class="lbl" for="qIn" style="flex-basis:100%;margin:0">Your question</label>
+            <input class="txt" id="qIn" type="text" placeholder="Ask about the image">
+            <button class="btn vqa" type="submit">Ask</button>
+          </form>
+          <div class="chip-row" id="qChips" aria-label="Suggested questions"></div>
+          <div class="now" id="now" aria-live="polite"></div>
+          <ul class="hist" id="hist"></ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="inside">
+      <h2>Inside the model</h2>
+      <p class="note" style="margin-top:0" id="pipeNote"></p>
+      <div class="pipe" id="pipe" data-mode="cap"></div>
+    </div>
+
+    <p class="note disclaimer">This is a scripted demo. The captions and answers are prepared for these three scenes so you can see how each task behaves. Real models such as BLIP or LLaVA produce them with neural networks.</p>
+  </section>
+
+  <!-- SCORE -->
+  <section id="tab-score" aria-labelledby="t-score" hidden>
+    <div class="two">
+      <div>
+        <h2>Caption score <span class="tag cap">BLEU</span></h2>
+        <p class="note" style="margin-top:0">Three people wrote a reference caption for this image. Type your own and see how much of it the references cover.</p>
+        <div class="scene-wrap mini"><svg id="scoreSvg" viewBox="0 0 400 250" role="img" aria-label=""></svg></div>
+        <span class="lbl" style="margin-top:0">References</span>
+        <ol class="refs" id="refs"></ol>
+        <label class="lbl" for="candIn">Candidate caption</label>
+        <input class="txt" id="candIn" type="text" style="width:100%">
+        <div class="chip-row" id="candPresets"></div>
+        <div class="cand" id="candView" aria-live="polite"></div>
+        <p class="note" style="margin-top:6px">Green words appear in at least one reference. Red words do not.</p>
+        <div class="bars" id="bleuBars"></div>
+        <p class="note" id="bleuNote"></p>
+      </div>
+
+      <div>
+        <h2>Answer score <span class="tag vqa">VQA accuracy</span></h2>
+        <p class="note" style="margin-top:0">Ten people answered each question. An answer scores full marks when at least three of them gave it.</p>
+        <label class="lbl" for="vqSel">Question</label>
+        <select class="txt" id="vqSel"></select>
+        <label class="lbl" for="ansIn">Answer to score</label>
+        <input class="txt" id="ansIn" type="text" style="width:100%">
+        <div class="chip-row" id="ansPresets"></div>
+        <div class="bars" id="humanBars"></div>
+        <div class="big vqa" id="vqaScore">1.00</div>
+        <p class="note" id="vqaNote"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="tab-quiz" aria-labelledby="t-quiz" hidden>
+    <div class="qz" id="quiz"></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(s,el){return (el||document).querySelector(s)};
+  var $$ = function(s,el){return Array.prototype.slice.call((el||document).querySelectorAll(s))};
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var sleep = function(ms){return new Promise(function(r){setTimeout(r, reduce?0:ms)})};
+  var esc = function(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
+
+  /* ---------- scenes ---------- */
+  var SCENES = [
+    {
+      id:'beach', name:'Beach at sunset',
+      alt:'Illustration: a person cycling on a sandy beach next to the sea at sunset',
+      art:
+        '<rect width="400" height="116" fill="#f4974a"/>'+
+        '<rect y="52" width="400" height="64" fill="#f8b866"/>'+
+        '<rect y="88" width="400" height="28" fill="#fbd48a"/>'+
+        '<circle cx="280" cy="104" r="32" fill="#fff1c1"/>'+
+        '<rect y="116" width="400" height="60" fill="#3b86ad"/>'+
+        '<rect y="116" width="400" height="20" fill="#5aa3c4"/>'+
+        '<path d="M0 176 Q100 160 200 176 T400 172 V250 H0Z" fill="#e6cb98"/>'+
+        '<g fill="none" stroke="#2b2b2b" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">'+
+          '<circle cx="124" cy="204" r="18"/><circle cx="184" cy="204" r="18"/>'+
+          '<path d="M124 204 L148 176 L176 176 L184 204 M148 176 L160 204 L124 204 M176 176 L172 164"/>'+
+          '<path d="M166 160 L176 164"/><path d="M156 176 L160 196"/>'+
+        '</g>'+
+        '<circle cx="158" cy="146" r="8" fill="#2b2b2b"/>'+
+        '<path d="M152 156 L166 156 L168 176 L152 176Z" fill="#2b2b2b"/>',
+      regions:{
+        sky:{label:'the sky',rect:[0,0,400,116]},
+        sun:{label:'the sun',rect:[246,72,68,46]},
+        sea:{label:'the sea',rect:[0,116,400,60]},
+        sand:{label:'the sand',rect:[0,176,400,74]},
+        cyclist:{label:'the cyclist',rect:[98,138,116,90]}
+      },
+      cap:'A person:cyclist rides:cyclist a bicycle:cyclist on the sand:sand beside the sea:sea at sunset:sun',
+      refs:[
+        'a person riding a bicycle on the beach at sunset',
+        'a cyclist rides along the sand next to the sea as the sun sets',
+        'someone cycles on a sandy beach with the sun low over the water'
+      ],
+      para:'a rider pedals near the ocean while the sun goes down',
+      wrong:'a dog sleeps on a sofa',
+      things:[['person|man|woman|rider|cyclist|people|someone','cyclist'],['bicycle|bike','cyclist'],['sun','sun'],['sea|ocean|water','sea'],['sand|beach','sand'],['sky','sky']],
+      qa:[
+        {q:'What color is the sky?',a:'Orange',r:'sky',m:[['sky'],['color','colour']],h:{orange:6,yellow:2,peach:1,pink:1}},
+        {q:'Is there a person in the image?',a:'Yes',r:'cyclist',m:[['there'],['person','man','people','someone']],h:{yes:10}},
+        {q:'How many bicycles are there?',a:'1',r:'cyclist',m:[['how many'],['bicycle','bicycles','bike','bikes']],h:{'1':8,one:2}},
+        {q:'What is the person doing?',a:'Riding a bicycle',r:'cyclist',m:[['doing','do'],['person','man','rider','cyclist','he','she']],h:{'riding bicycle':5,'riding bike':4,cycling:1}}
+      ]
+    },
+    {
+      id:'street', name:'Street crossing',
+      alt:'Illustration: a blue car stopped at a red traffic light while two people wait by a crosswalk',
+      art:
+        '<rect width="400" height="150" fill="#cfe3f2"/>'+
+        '<rect y="50" width="90" height="104" fill="#8fa3b8"/>'+
+        '<rect x="94" y="30" width="84" height="124" fill="#a9b7c6"/>'+
+        '<rect x="182" y="68" width="70" height="86" fill="#7f93a8"/>'+
+        '<g fill="#dfe8f1"><rect x="12" y="62" width="14" height="14"/><rect x="38" y="62" width="14" height="14"/><rect x="64" y="62" width="14" height="14"/>'+
+        '<rect x="12" y="90" width="14" height="14"/><rect x="38" y="90" width="14" height="14"/><rect x="64" y="90" width="14" height="14"/>'+
+        '<rect x="106" y="44" width="14" height="14"/><rect x="132" y="44" width="14" height="14"/><rect x="106" y="72" width="14" height="14"/><rect x="132" y="72" width="14" height="14"/>'+
+        '<rect x="194" y="82" width="14" height="14"/><rect x="220" y="82" width="14" height="14"/></g>'+
+        '<rect y="150" width="400" height="25" fill="#c9c9c9"/>'+
+        '<rect y="175" width="400" height="75" fill="#4b5058"/>'+
+        '<g fill="#e8e8e8"><rect x="20" y="226" width="40" height="4"/><rect x="90" y="226" width="40" height="4"/><rect x="320" y="226" width="40" height="4"/>'+
+        '<rect x="204" y="180" width="8" height="58"/><rect x="218" y="180" width="8" height="58"/><rect x="232" y="180" width="8" height="58"/><rect x="246" y="180" width="8" height="58"/><rect x="260" y="180" width="8" height="58"/><rect x="274" y="180" width="8" height="58"/></g>'+
+        '<rect x="338" y="80" width="6" height="80" fill="#333"/>'+
+        '<rect x="328" y="40" width="26" height="52" rx="4" fill="#222"/>'+
+        '<circle cx="341" cy="53" r="6" fill="#e53935"/><circle cx="341" cy="66" r="6" fill="#6b5a1a"/><circle cx="341" cy="79" r="6" fill="#1b4d2b"/>'+
+        '<path d="M50 178 L62 160 L108 160 L120 178Z" fill="#2c6fb7"/>'+
+        '<rect x="30" y="178" width="100" height="26" rx="6" fill="#2c6fb7"/>'+
+        '<path d="M58 176 L67 164 L84 164 L84 176Z M90 176 L90 164 L104 164 L112 176Z" fill="#cfe6f7"/>'+
+        '<circle cx="55" cy="206" r="10" fill="#1a1a1a"/><circle cx="105" cy="206" r="10" fill="#1a1a1a"/>'+
+        '<circle cx="218" cy="120" r="7" fill="#eec39a"/><rect x="211" y="128" width="14" height="26" rx="3" fill="#d9534f"/>'+
+        '<rect x="213" y="154" width="4" height="14" fill="#33415c"/><rect x="219" y="154" width="4" height="14" fill="#33415c"/>'+
+        '<circle cx="246" cy="122" r="7" fill="#eec39a"/><rect x="239" y="130" width="14" height="24" rx="3" fill="#3a9d5d"/>'+
+        '<rect x="241" y="154" width="4" height="12" fill="#33415c"/><rect x="247" y="154" width="4" height="12" fill="#33415c"/>',
+      regions:{
+        buildings:{label:'the buildings',rect:[0,30,252,124]},
+        light:{label:'the traffic light',rect:[322,34,38,130]},
+        car:{label:'the car',rect:[26,156,110,62]},
+        people:{label:'the two people',rect:[200,106,64,64]},
+        crosswalk:{label:'the crosswalk',rect:[198,176,92,66]}
+      },
+      cap:'A blue:car car:car waits:car at a red:light light:light while two:people people:people stand near the crosswalk:crosswalk',
+      refs:[
+        'a blue car stopped at a red traffic light',
+        'two people wait beside a crosswalk while a car is stopped at the light',
+        'a car waits at a red light near a pedestrian crossing'
+      ],
+      para:'two pedestrians wait by the road as a vehicle idles at the signal',
+      wrong:'a dog sleeps on a sofa',
+      things:[['car|cars|vehicle','car'],['traffic light|light|lights|signal|traffic signal','light'],['person|people|pedestrian|pedestrians|man|woman','people'],['crosswalk|zebra crossing|crossing|road|street','crosswalk'],['building|buildings','buildings']],
+      qa:[
+        {q:'What color is the traffic light?',a:'Red',r:'light',m:[['light','signal'],['color','colour']],h:{red:10}},
+        {q:'How many people are there?',a:'2',r:'people',m:[['how many'],['people','person','pedestrians','pedestrian']],h:{'2':7,two:3}},
+        {q:'What color is the car?',a:'Blue',r:'car',m:[['car','vehicle'],['color','colour']],h:{blue:9,'dark blue':1}},
+        {q:'Is the car moving?',a:'No',r:'car',m:[['car'],['moving','move','driving','going']],h:{no:8,yes:1,'not sure':1}},
+        {q:'Is the car stopped?',a:'Yes',r:'car',m:[['car'],['stopped','stop','waiting','waits','parked']],h:{yes:8,no:1,'not sure':1}}
+      ]
+    },
+    {
+      id:'kitchen', name:'Kitchen table',
+      alt:'Illustration: a bowl with three apples and a blue mug on a wooden table beside a sunny window',
+      art:
+        '<rect width="400" height="250" fill="#e9dccb"/>'+
+        '<rect x="40" y="30" width="110" height="90" fill="#bfe3f5" stroke="#7a5b3a" stroke-width="5"/>'+
+        '<path d="M95 30 V120 M40 75 H150" stroke="#7a5b3a" stroke-width="4"/>'+
+        '<circle cx="75" cy="55" r="14" fill="#fff3c4" opacity=".85"/>'+
+        '<rect y="165" width="400" height="85" fill="#8b5e3c"/>'+
+        '<rect y="165" width="400" height="10" fill="#a3714a"/>'+
+        '<circle cx="204" cy="176" r="15" fill="#d64545"/><circle cx="234" cy="172" r="15" fill="#c0392b"/><circle cx="263" cy="177" r="14" fill="#7cb342"/>'+
+        '<path d="M168 186 H292 Q285 230 230 232 Q175 230 168 186Z" fill="#e8e0d0" stroke="#a89f8c" stroke-width="2"/>'+
+        '<rect x="330" y="175" width="32" height="36" rx="5" fill="#2f6fb0"/>'+
+        '<path d="M362 184 q14 0 14 12 q0 12 -14 12" stroke="#2f6fb0" stroke-width="5" fill="none"/>',
+      regions:{
+        window:{label:'the window',rect:[34,24,122,102]},
+        table:{label:'the table',rect:[0,165,400,85]},
+        bowl:{label:'the fruit bowl',rect:[162,156,138,80]},
+        mug:{label:'the mug',rect:[322,168,62,50]}
+      },
+      cap:'A bowl:bowl of three:bowl apples:bowl and a blue:mug mug:mug sit on a wooden:table table:table by a sunny:window window:window',
+      refs:[
+        'a bowl of apples and a blue mug on a wooden table',
+        'three apples in a bowl next to a blue cup by the window',
+        'a kitchen table with a fruit bowl a mug and a sunny window'
+      ],
+      para:'fruit and a cup sit on a wooden counter near sunlight',
+      wrong:'a dog sleeps on a sofa',
+      things:[['apple|apples|fruit|bowl','bowl'],['mug|cup','mug'],['window','window'],['table','table']],
+      qa:[
+        {q:'How many apples are in the bowl?',a:'3',r:'bowl',m:[['how many'],['apples','apple','fruit','fruits']],h:{'3':8,three:2}},
+        {q:'What color is the mug?',a:'Blue',r:'mug',m:[['mug','cup'],['color','colour']],h:{blue:9,'dark blue':1}},
+        {q:'What is the table made of?',a:'Wood',r:'table',m:[['table'],['made','material','wood','wooden']],h:{wood:7,wooden:3}},
+        {q:'Is there a cat?',a:'No',r:null,m:[['there'],['cat']],h:{no:10}}
+      ]
+    }
+  ];
+
+  var state = {tab:'lab', mode:'cap', scene:0, runId:0, capDone:false, hist:[]};
+  var cur = function(){return SCENES[state.scene]};
+  var alive = function(id){return id===state.runId};
+
+  /* ---------- scene bar ---------- */
+  function buildSceneBar(){
+    var bar = $('#sceneBar');
+    SCENES.forEach(function(s,i){
+      var b = document.createElement('button');
+      b.className='seg'; b.type='button'; b.textContent=s.name; b.dataset.i=i;
+      b.setAttribute('aria-pressed', i===state.scene ? 'true':'false');
+      b.addEventListener('click', function(){ state.scene=i; syncSceneBar(); renderAll(); });
+      bar.appendChild(b);
+    });
+  }
+  function syncSceneBar(){
+    $$('#sceneBar .seg').forEach(function(b){ b.setAttribute('aria-pressed', +b.dataset.i===state.scene ? 'true':'false'); });
+  }
+
+  /* ---------- scene rendering + focus ---------- */
+  function renderScene(){
+    var s = cur(), svg = $('#sceneSvg');
+    svg.setAttribute('aria-label', s.alt);
+    svg.innerHTML = s.art + '<rect id="hl" class="hl cap" x="0" y="0" width="0" height="0" rx="6" style="opacity:0"/>';
+    setFocus(null);
+    var sv = $('#scoreSvg'); sv.setAttribute('aria-label', s.alt); sv.innerHTML = s.art;
+  }
+  function setFocus(rid, mode, msg){
+    var hl = $('#hl'), s = cur();
+    var r = rid && s.regions[rid];
+    if(!r){ hl.style.opacity = 0; $('#focusText').textContent = msg || 'nothing yet'; return; }
+    hl.setAttribute('x', r.rect[0]); hl.setAttribute('y', r.rect[1]);
+    hl.setAttribute('width', r.rect[2]); hl.setAttribute('height', r.rect[3]);
+    hl.setAttribute('class', 'hl ' + (mode || state.mode));
+    hl.style.opacity = 1;
+    $('#focusText').textContent = r.label;
+  }
+
+  /* ---------- pipeline ---------- */
+  function buildPipe(mode){
+    var p = $('#pipe'); p.dataset.mode = mode;
+    var N = function(step,t,d){return '<div class="node" data-step="'+step+'"><b>'+t+'</b><small>'+d+'</small></div>'};
+    var cell = function(x){return '<div class="cell">'+x+'</div>'};
+    if(mode==='cap'){
+      p.innerHTML = [
+        N(0,'Image encoder','CNN or ViT turns the image into region features'),
+        N(1,'Attention','Chooses the region to look at for the next word'),
+        N(2,'Text decoder','LSTM or Transformer writes one word at a time'),
+        N(3,'Caption','Free-form text')
+      ].map(cell).join('');
+      $('#pipeNote').textContent = 'Only the image goes in. The model decides what is worth mentioning.';
+    } else {
+      p.innerHTML =
+        cell('<div class="stack">'+N(0,'Image encoder','CNN or ViT')+N(0,'Question encoder','LSTM or BERT')+'</div>') +
+        [N(1,'Fusion','Attention over the image and the question together'),
+         N(2,'Answer head','Classifier over common answers, or a decoder'),
+         N(3,'Answer','Short and tied to the question')].map(cell).join('');
+      $('#pipeNote').textContent = 'The question is a second input. Fusion decides which part of the image matters for it.';
+    }
+  }
+  function setStep(i){
+    $$('#pipe .node').forEach(function(n){
+      var k = +n.dataset.step;
+      n.classList.toggle('on', k===i);
+      n.classList.toggle('done', k<i);
+    });
+  }
+
+  /* ---------- captioning ---------- */
+  function parseCap(str){
+    return str.split(' ').map(function(t){ var a=t.split(':'); return {w:a[0], r:a[1]||null}; });
+  }
+  async function generateCaption(){
+    var id = ++state.runId, s = cur();
+    state.capDone = false;
+    var out = $('#capOut'); out.textContent = '';
+    $('#capHint').hidden = true; $('#capAlt').hidden = true;
+    setFocus(null); setStep(-1);
+    setStep(0); await sleep(550); if(!alive(id)) return;
+    setStep(1); await sleep(450); if(!alive(id)) return;
+    setStep(2);
+    var words = parseCap(s.cap);
+    for(var i=0;i<words.length;i++){
+      if(!alive(id)) return;
+      var sp = document.createElement('span');
+      sp.className = 'w'; sp.textContent = words[i].w;
+      if(words[i].r){ sp.dataset.r = words[i].r; sp.tabIndex = 0; }
+      out.appendChild(sp);
+      out.appendChild(document.createTextNode(i<words.length-1 ? ' ' : '.'));
+      if(words[i].r) setFocus(words[i].r, 'cap');
+      await sleep(300);
+    }
+    if(!alive(id)) return;
+    setStep(3); setFocus(null,'cap','done');
+    state.capDone = true;
+    $$('#capOut .w[data-r]').forEach(function(w){ w.classList.add('live'); });
+    $('#capHint').hidden = false;
+    $('#capAltList').innerHTML = s.refs.slice(1).map(function(r){return '<li>'+esc(r)+'</li>'}).join('');
+    $('#capAlt').hidden = false;
+  }
+
+  /* ---------- VQA ---------- */
+  function normQ(q){ return ' '+q.toLowerCase().replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim()+' '; }
+  function answerFor(q){
+    var s = cur(), n = normQ(q), best = null, bestScore = 0;
+    s.qa.forEach(function(it){
+      var ok = it.m.every(function(g){ return g.some(function(k){ return n.indexOf(' '+k+' ')>-1; }); });
+      if(ok && it.m.length > bestScore){ best = it; bestScore = it.m.length; }
+    });
+    if(best) return {a:best.a, r:best.r, note:''};
+    var m = n.match(/ (?:is|are) there (?:a |an |any |some )?(.+?) $/);
+    if(m){
+      var noun = m[1].replace(/ (in|on|at) (the|this) (image|picture|photo|scene)$/,'').replace(/ here$/,'').trim();
+      for(var i=0;i<s.things.length;i++){
+        if(new RegExp('\\b('+s.things[i][0]+')\\b').test(noun)) return {a:'Yes', r:s.things[i][1], note:''};
+      }
+      return {a:'No', r:null, note:'Nothing like "'+noun+'" is annotated in this scene.'};
+    }
+    return null;
+  }
+  async function ask(text){
+    text = text.trim(); if(!text) return;
+    var id = ++state.runId, now = $('#now');
+    state.capDone = false;
+    setFocus(null); setStep(-1);
+    now.innerHTML = '<div class="ql"></div><div class="al"></div><div class="nt"></div>';
+    $('.ql',now).textContent = 'Q: ' + text;
+    var res = answerFor(text);
+    if(!res){
+      $('.al',now).textContent = 'Not in this demo';
+      $('.nt',now).textContent = 'It knows the questions in the chips above, plus "Is there a ...?" questions.';
+      return;
+    }
+    setStep(0); await sleep(550); if(!alive(id)) return;
+    setStep(1); await sleep(500); if(!alive(id)) return;
+    setStep(2); await sleep(450); if(!alive(id)) return;
+    setStep(3);
+    if(res.r) setFocus(res.r,'vqa'); else setFocus(null,'vqa','no matching region');
+    $('.al',now).textContent = res.a;
+    $('.nt',now).textContent = res.note || (res.r ? 'Looked at ' + cur().regions[res.r].label + '.' : '');
+    state.hist.unshift({q:text, a:res.a});
+    state.hist = state.hist.slice(0,5);
+    renderHist();
+  }
+  function renderHist(){
+    $('#hist').innerHTML = state.hist.map(function(h){
+      return '<li><span>'+esc(h.q)+'</span><span class="a">'+esc(h.a)+'</span></li>';
+    }).join('');
+  }
+  function renderChips(){
+    var box = $('#qChips'); box.innerHTML = '';
+    cur().qa.forEach(function(it){
+      var b = document.createElement('button');
+      b.type='button'; b.className='qchip'; b.textContent = it.q;
+      b.addEventListener('click', function(){ $('#qIn').value = it.q; ask(it.q); });
+      box.appendChild(b);
+    });
+  }
+
+  /* ---------- modes ---------- */
+  function setMode(m){
+    state.mode = m; state.runId++; state.capDone = false;
+    $$('.mode').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.mode===m ? 'true':'false'); });
+    $('#capPane').hidden = m!=='cap';
+    $('#vqaPane').hidden = m!=='vqa';
+    buildPipe(m); setStep(-1); setFocus(null);
+  }
+
+  /* ---------- score: BLEU ---------- */
+  function tok(s){ return s.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(Boolean); }
+  function ngr(t,n){ var m={}; for(var i=0;i+n<=t.length;i++){ var k=t.slice(i,i+n).join(' '); m[k]=(m[k]||0)+1; } return m; }
+  function bleu(cand, refs){
+    var c = tok(cand); if(!c.length) return null;
+    var R = refs.map(tok), ps = [];
+    for(var n=1;n<=2;n++){
+      var cn = ngr(c,n), tot = 0, clip = 0;
+      Object.keys(cn).forEach(function(k){
+        tot += cn[k]; var mx = 0;
+        R.forEach(function(r){ mx = Math.max(mx, ngr(r,n)[k]||0); });
+        clip += Math.min(cn[k], mx);
+      });
+      ps.push(tot ? clip/tot : 0);
+    }
+    var r = R.map(function(x){return x.length}).reduce(function(a,b){
+      var da = Math.abs(a-c.length), db = Math.abs(b-c.length);
+      return (db<da || (db===da && b<a)) ? b : a;
+    });
+    var bp = c.length>=r ? 1 : Math.exp(1 - r/c.length);
+    return {p1:ps[0], p2:ps[1], bp:bp, b1:bp*ps[0], b2:bp*Math.sqrt(ps[0]*ps[1]), c:c.length, r:r};
+  }
+  function barRow(label,val,cls,extra){
+    return '<div class="bar"><span>'+label+'</span><div class="track"><div class="fill '+(cls||'')+'" style="width:'+Math.round(val*100)+'%"></div></div><span class="v">'+(extra||val.toFixed(2))+'</span></div>';
+  }
+  function renderBleu(){
+    var s = cur(), text = $('#candIn').value, R = s.refs;
+    var res = bleu(text, R);
+    var refSet = {}; R.forEach(function(r){ tok(r).forEach(function(w){ refSet[w]=1; }); });
+    $('#candView').innerHTML = tok(text).map(function(w){
+      return '<span class="tok '+(refSet[w]?'hit':'miss')+'">'+esc(w)+'</span>';
+    }).join('');
+    if(!res){ $('#bleuBars').innerHTML=''; $('#bleuNote').textContent='Type a caption to score it.'; return; }
+    $('#bleuBars').innerHTML =
+      barRow('1-gram prec.', res.p1) +
+      barRow('2-gram prec.', res.p2) +
+      barRow('brevity', res.bp, 'dim') +
+      barRow('BLEU-1', res.b1) +
+      barRow('BLEU-2', res.b2);
+    var hi = res.b2 < 0.25 && res.p1 > 0.4;
+    $('#bleuNote').textContent = hi
+      ? 'Many words match, but few pairs of words do, so the score is low. A good paraphrase can look like a bad caption to BLEU. CIDEr and SPICE were built to reward meaning and word importance instead.'
+      : 'BLEU counts word overlap with the references, with a penalty for captions much shorter than they. Real evaluation uses 4-grams over thousands of images.';
+  }
+  function renderScore(){
+    var s = cur();
+    $('#refs').innerHTML = s.refs.map(function(r){return '<li>'+esc(r)+'</li>'}).join('');
+    $('#candIn').value = s.cap.split(' ').map(function(t){return t.split(':')[0]}).join(' ').toLowerCase();
+    var pre = $('#candPresets'); pre.innerHTML='';
+    [['Model caption', $('#candIn').value],['Valid paraphrase', s.para],['Wrong caption', s.wrong]].forEach(function(p){
+      var b = document.createElement('button'); b.type='button'; b.className='qchip'; b.textContent=p[0];
+      b.addEventListener('click', function(){ $('#candIn').value = p[1]; renderBleu(); });
+      pre.appendChild(b);
+    });
+    renderBleu();
+    var sel = $('#vqSel');
+    sel.innerHTML = s.qa.map(function(it,i){return '<option value="'+i+'">'+esc(it.q)+'</option>'}).join('');
+    sel.value = '0';
+    setAnsDefault();
+  }
+
+  /* ---------- score: VQA accuracy ---------- */
+  var NUM = {zero:'0',one:'1',two:'2',three:'3',four:'4',five:'5',six:'6'};
+  function normAns(s){
+    return s.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(function(w){return w && w!=='a' && w!=='an' && w!=='the'}).map(function(w){return NUM[w]||w}).join(' ');
+  }
+  function humans(it){
+    var h = {};
+    Object.keys(it.h).forEach(function(k){ var n = normAns(k); h[n] = (h[n]||0) + it.h[k]; });
+    return h;
+  }
+  function setAnsDefault(){
+    var it = cur().qa[+$('#vqSel').value];
+    $('#ansIn').value = it.a;
+    var pre = $('#ansPresets'); pre.innerHTML='';
+    var opts = [it.a].concat(Object.keys(it.h).filter(function(k){return normAns(k)!==normAns(it.a)}).slice(0,2)).concat(['purple']);
+    opts.forEach(function(o){
+      var b = document.createElement('button'); b.type='button'; b.className='qchip'; b.textContent=o;
+      b.addEventListener('click', function(){ $('#ansIn').value = o; renderVqa(); });
+      pre.appendChild(b);
+    });
+    renderVqa();
+  }
+  function renderVqa(){
+    var it = cur().qa[+$('#vqSel').value], h = humans(it);
+    var mine = normAns($('#ansIn').value);
+    var keys = Object.keys(h).sort(function(a,b){return h[b]-h[a]});
+    $('#humanBars').innerHTML = keys.map(function(k){
+      return '<div class="bar"><span>'+esc(k)+'</span><div class="track"><div class="fill vqa'+(k===mine?' pick':'')+'" style="width:'+(h[k]*10)+'%"></div></div><span class="v">'+h[k]+' / 10</span></div>';
+    }).join('');
+    var n = h[mine] || 0, sc = Math.min(n/3, 1);
+    $('#vqaScore').textContent = sc.toFixed(2);
+    $('#vqaNote').textContent = mine
+      ? n + ' of 10 people gave this answer, so the score is min(' + n + '/3, 1). The official metric averages this over subsets of nine annotators.'
+      : 'Type an answer to score it.';
+  }
+
+  /* ---------- quiz ---------- */
+  var QUIZ = [
+    {t:'A shop needs alt text for 10,000 product photos on its website.', a:'cap',
+     why:'Nobody asks a question. Every image needs a general description, which is what captioning produces.'},
+    {t:'A blind user points a phone at a crossing light and asks, "Is it green?"', a:'vqa',
+     why:'The user asks about one detail of the image. That is VQA, and it is how assistive apps such as Be My Eyes work.'},
+    {t:'A news archive needs searchable text for 40 years of photographs.', a:'cap',
+     why:'Search needs a description of every photo, asked for by nobody. Captioning generates it in bulk.'},
+    {t:'A radiologist asks whether an X-ray of the left wrist shows a fracture.', a:'vqa',
+     why:'A specific question about one region of the image. VQA can support the clinician, but it does not replace one.'},
+    {t:'A farmer asks whether the north field in a drone photo looks dry.', a:'vqa',
+     why:'The farmer wants one fact about one area. A general caption would probably not mention the field at all.'},
+    {t:'A social app suggests a first-draft caption when you upload a photo.', a:'cap',
+     why:'The app gets an image and no question, and returns free-form text.'}
+  ];
+  var qz = {i:0, score:0, answered:false};
+  function renderQuiz(){
+    var box = $('#quiz');
+    if(qz.i >= QUIZ.length){
+      box.innerHTML = '<div class="prog">Finished</div><div class="final">'+qz.score+' / '+QUIZ.length+'</div>'+
+        '<p class="lead">'+(qz.score===QUIZ.length?'Every scenario matched. The rule of thumb: no question means captioning, a specific question means VQA.':'Look again at the ones you missed. Ask whether the user supplies a question.')+'</p>'+
+        '<button class="btn plain" id="qzAgain" type="button">Start again</button>';
+      $('#qzAgain').addEventListener('click', function(){ qz={i:0,score:0,answered:false}; renderQuiz(); });
+      return;
+    }
+    var q = QUIZ[qz.i];
+    box.innerHTML = '<div class="prog">Scenario '+(qz.i+1)+' of '+QUIZ.length+' &middot; score '+qz.score+'</div>'+
+      '<p class="scn">'+esc(q.t)+'</p>'+
+      '<div class="pick2"><button class="btn cap" data-a="cap" type="button">Captioning</button><button class="btn vqa" data-a="vqa" type="button">VQA</button></div>'+
+      '<div id="qzFb" aria-live="polite"></div>';
+    $$('#quiz .pick2 .btn').forEach(function(b){
+      b.addEventListener('click', function(){
+        if(qz.answered) return;
+        qz.answered = true;
+        var right = b.dataset.a === q.a;
+        if(right) qz.score++;
+        $$('#quiz .pick2 .btn').forEach(function(x){ x.disabled = true; });
+        $('#qzFb').innerHTML = '<div class="fb '+(right?'ok':'bad')+'"><b>'+(right?'Correct.':'Not this time. It is '+(q.a==='cap'?'captioning.':'VQA.'))+'</b><span>'+esc(q.why)+'</span></div>'+
+          '<button class="btn plain" id="qzNext" type="button">'+(qz.i===QUIZ.length-1?'See result':'Next scenario')+'</button>';
+        $('#qzNext').addEventListener('click', function(){ qz.i++; qz.answered=false; renderQuiz(); });
+        $('#qzNext').focus();
+      });
+    });
+  }
+
+  /* ---------- tabs ---------- */
+  function setTab(t){
+    state.tab = t;
+    $$('.tab').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.tab===t ? 'true':'false'); });
+    ['lab','score','quiz'].forEach(function(k){ $('#tab-'+k).hidden = k!==t; });
+    $('#sceneBar').hidden = t==='quiz';
+  }
+
+  function renderAll(){
+    state.runId++; state.capDone = false; state.hist = [];
+    renderScene();
+    $('#capOut').textContent = ''; $('#capHint').hidden = true; $('#capAlt').hidden = true;
+    $('#now').innerHTML = '<div class="ql">Ask anything about this image, or pick a question below the box.</div><div class="al"></div><div class="nt"></div>';
+    $('#qIn').value = '';
+    renderHist(); renderChips();
+    buildPipe(state.mode); setStep(-1);
+    renderScore();
+  }
+
+  /* ---------- wiring ---------- */
+  $$('.tab').forEach(function(b){ b.addEventListener('click', function(){ setTab(b.dataset.tab); }); });
+  $$('.mode').forEach(function(b){ b.addEventListener('click', function(){ setMode(b.dataset.mode); }); });
+  $('#genBtn').addEventListener('click', generateCaption);
+  $('#askForm').addEventListener('submit', function(e){ e.preventDefault(); ask($('#qIn').value); });
+  $('#capOut').addEventListener('mouseover', function(e){
+    var w = e.target.closest && e.target.closest('.w[data-r]');
+    if(w && state.capDone) setFocus(w.dataset.r,'cap');
+  });
+  $('#capOut').addEventListener('mouseout', function(e){
+    if(state.capDone && e.target.closest && e.target.closest('.w[data-r]')) setFocus(null,'cap','done');
+  });
+  $('#capOut').addEventListener('focusin', function(e){
+    var w = e.target.closest && e.target.closest('.w[data-r]');
+    if(w && state.capDone) setFocus(w.dataset.r,'cap');
+  });
+  $('#capOut').addEventListener('focusout', function(){ if(state.capDone) setFocus(null,'cap','done'); });
+  $('#candIn').addEventListener('input', renderBleu);
+  $('#vqSel').addEventListener('change', setAnsDefault);
+  $('#ansIn').addEventListener('input', renderVqa);
+
+  buildSceneBar();
+  renderAll();
+  renderQuiz();
+  setTab('lab');
+})();
+</script>
+
+</body></html>
